@@ -11,6 +11,27 @@ env = { "CI" = "true" }
 [workflows]
 runButton = "Project"
 
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Bank Analyzer"
+
+[[workflows.workflow]]
+name = "Bank Analyzer"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=20466 BASE_PATH=/ pnpm --filter @workspace/bank-analyzer run dev"
+waitForPort = 20466
+
 [agent]
 stack = "PNPM_WORKSPACE"
 expertMode = true

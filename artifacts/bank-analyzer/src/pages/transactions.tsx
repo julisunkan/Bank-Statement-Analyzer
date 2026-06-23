@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Wand2 } from "lucide-react";
+import { Search, Wand2, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/use-debounce";
+import { exportToExcel } from "@/lib/export-xlsx";
 
 export default function Transactions() {
   const queryClient = useQueryClient();
@@ -33,6 +34,25 @@ export default function Transactions() {
     });
   };
 
+  const handleExport = () => {
+    if (!page?.transactions?.length) return;
+
+    const rows = page.transactions.map((tx) => ({
+      Date: format(new Date(tx.date), "yyyy-MM-dd"),
+      Description: tx.description ?? "",
+      Merchant: tx.merchant ?? "",
+      Category: tx.categoryName ?? "Uncategorized",
+      Type: tx.type === "credit" ? "Credit" : "Debit",
+      Amount: tx.type === "credit"
+        ? `+${tx.amount.toFixed(2)}`
+        : `-${tx.amount.toFixed(2)}`,
+    }));
+
+    const dateStr = format(new Date(), "yyyy-MM-dd");
+    exportToExcel(rows, `transactions-${dateStr}.csv`);
+    toast({ title: `Exported ${rows.length} transactions to Excel` });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -40,10 +60,20 @@ export default function Transactions() {
           <h1 className="text-3xl font-bold tracking-tight">Transactions</h1>
           <p className="text-muted-foreground">View and categorize your transactions</p>
         </div>
-        <Button onClick={handleBulkCategorize} disabled={bulkCat.isPending} variant="secondary">
-          <Wand2 className="w-4 h-4 mr-2" />
-          {bulkCat.isPending ? "Categorizing..." : "Auto-Categorize"}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleExport}
+            disabled={isLoading || !page?.transactions?.length}
+            variant="outline"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export to Excel
+          </Button>
+          <Button onClick={handleBulkCategorize} disabled={bulkCat.isPending} variant="secondary">
+            <Wand2 className="w-4 h-4 mr-2" />
+            {bulkCat.isPending ? "Categorizing..." : "Auto-Categorize"}
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -59,7 +89,7 @@ export default function Transactions() {
               />
             </div>
           </div>
-          
+
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
