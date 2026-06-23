@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Bank Statement Analyzer Pro"
+version = "1.0.0"
+id = "artifacts/bank-analyzer"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20466
+
+[services.development]
+run = "pnpm --filter @workspace/bank-analyzer run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/bank-analyzer", "run", "build" ]
+publicDir = "artifacts/bank-analyzer/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20466"
+BASE_PATH = "/"

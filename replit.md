@@ -1,6 +1,6 @@
-# [Project name]
+# Bank Statement Analyzer Pro
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A full-stack SaaS web platform for bank statement analysis, transaction categorization, budgeting, goal tracking, cashflow forecasting, and admin portal.
 
 ## Run & Operate
 
@@ -19,18 +19,41 @@ _Replace the heading above with the project's name, and this line with one sente
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
 - Build: esbuild (CJS bundle)
+- Auth: JWT (jsonwebtoken) + bcryptjs, stored in localStorage
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `lib/db/src/schema/` — Drizzle schema (users, statements, transactions, categories, budgets, goals, reports, audit_logs)
+- `lib/api-spec/openapi.yaml` — OpenAPI spec (source of truth for all API contracts)
+- `lib/api-client-react/` — Orval-generated React Query hooks + Zod schemas
+- `artifacts/api-server/src/routes/` — Express route handlers (auth, statements, transactions, categories, budgets, goals, analytics, subscriptions, forecasts, reports, users, admin)
+- `artifacts/api-server/src/middlewares/auth.ts` — JWT middleware (`requireAuth`, `requireAdmin`, `signToken`)
+- `artifacts/bank-analyzer/src/` — React + Vite frontend
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Contract-first: OpenAPI spec defines the API, Orval generates typed React Query hooks and Zod schemas from it
+- JWT stored in localStorage; Authorization header attached by `custom-fetch.ts`; 401 responses redirect to `/login`
+- All routes are prefixed `/api` (served by the API server artifact); the frontend is at `/`
+- Default categories seeded once in the DB; users can add custom categories
+- Drizzle ORM for all DB access — schema changes go through `pnpm --filter @workspace/db run push`
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- **Auth**: Register / login with JWT tokens
+- **Dashboard**: KPI cards, spending overview, top categories, active subscriptions
+- **Statements**: Upload bank statements (CSV paste), view and delete
+- **Transactions**: Transaction ledger with search and bulk categorization
+- **Budgets**: Monthly budget tracking with progress bars per category
+- **Goals**: Financial goal tracking (emergency fund, vehicle, home, etc.)
+- **Analytics**: Cashflow forecasting, merchant spending intelligence, spending by category
+- **Reports**: Generate period-based reports (monthly, quarterly, annual)
+- **Admin**: User management, audit logs, platform stats (super_admin role only)
+
+## Demo Credentials
+
+- **Demo user**: `demo@bankanalyzer.com` / `demo123` (pro plan, pre-loaded with transactions)
+- **Admin**: `admin@bankanalyzer.com` / `admin123` (super_admin, enterprise plan)
 
 ## User preferences
 
@@ -38,7 +61,8 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- After changing DB schema in `lib/db/`, always run `pnpm run typecheck:libs` before building the API server — stale lib declarations cause TS2305 errors.
+- Run `pnpm --filter @workspace/api-spec run codegen` after any OpenAPI spec change to regenerate hooks.
 
 ## Pointers
 

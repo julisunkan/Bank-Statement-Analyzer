@@ -322,50 +322,24 @@ async function parseSuccessBody(
   }
 }
 
-export async function customFetch<T = unknown>(
-  input: RequestInfo | URL,
-  options: CustomFetchOptions = {},
-): Promise<T> {
-  input = applyBaseUrl(input);
-  const { responseType = "auto", headers: headersInit, ...init } = options;
-
-  const method = resolveMethod(input, init.method);
-
-  if (init.body != null && (method === "GET" || method === "HEAD")) {
-    throw new TypeError(`customFetch: ${method} requests cannot have a body.`);
+export const customFetch = async <T>(url: string | URL | RequestInfo, options: RequestInit = {}): Promise<T> => {
+  const token = localStorage.getItem("auth_token");
+  const headers = new Headers(options.headers);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  
+  const response = await fetch(url, { ...options, headers });
+  
+  if (response.status === 401) {
+    localStorage.removeItem("auth_token");
+    window.location.href = "/login";
+    return {} as T;
   }
-
-  const headers = mergeHeaders(isRequest(input) ? input.headers : undefined, headersInit);
-
-  if (
-    typeof init.body === "string" &&
-    !headers.has("content-type") &&
-    looksLikeJson(init.body)
-  ) {
-    headers.set("content-type", "application/json");
-  }
-
-  if (responseType === "json" && !headers.has("accept")) {
-    headers.set("accept", DEFAULT_JSON_ACCEPT);
-  }
-
-  // Attach bearer token when an auth getter is configured and no
-  // Authorization header has been explicitly provided.
-  if (_authTokenGetter && !headers.has("authorization")) {
-    const token = await _authTokenGetter();
-    if (token) {
-      headers.set("authorization", `Bearer ${token}`);
-    }
-  }
-
-  const requestInfo = { method, url: resolveUrl(input) };
-
-  const response = await fetch(input, { ...init, method, headers });
-
+  
   if (!response.ok) {
-    const errorData = await parseErrorBody(response, method);
-    throw new ApiError(response, errorData, requestInfo);
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw Object.assign(new Error(error.error || response.statusText), { status: response.status, data: error });
   }
-
-  return (await parseSuccessBody(response, responseType, requestInfo)) as T;
-}
+  
+  if (response.status === 204) return {} as T;
+  return response.json();
+};

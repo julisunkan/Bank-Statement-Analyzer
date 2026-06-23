@@ -1,22 +1,45 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Bank Statement Analyzer Pro API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: statements
+    description: Bank statement operations
+  - name: transactions
+    description: Transaction operations
+  - name: categories
+    description: Category management
+  - name: budgets
+    description: Budget management
+  - name: goals
+    description: Financial goals
+  - name: analytics
+    description: Analytics and insights
+  - name: forecasts
+    description: Cashflow forecasting
+  - name: reports
+    description: Report generation
+  - name: subscriptions
+    description: Detected subscriptions
+  - name: admin
+    description: Admin operations
+  - name: users
+    description: User profile
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +47,1438 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # Auth
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+
+  # Statements
+  /statements:
+    get:
+      operationId: listStatements
+      tags: [statements]
+      summary: List uploaded statements
+      responses:
+        "200":
+          description: List of statements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Statement"
+
+    post:
+      operationId: uploadStatement
+      tags: [statements]
+      summary: Upload a bank statement (CSV/XLSX/JSON)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatementUpload"
+      responses:
+        "201":
+          description: Statement uploaded and parsed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Statement"
+
+  /statements/{id}:
+    get:
+      operationId: getStatement
+      tags: [statements]
+      summary: Get a statement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Statement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Statement"
+        "404":
+          description: Not found
+
+    delete:
+      operationId: deleteStatement
+      tags: [statements]
+      summary: Delete a statement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # Transactions
+  /transactions:
+    get:
+      operationId: listTransactions
+      tags: [transactions]
+      summary: List transactions with optional filters
+      parameters:
+        - name: statementId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: categoryId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: type
+          in: query
+          schema:
+            type: ["string", "null"]
+            enum: [credit, debit, null]
+        - name: search
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: startDate
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: endDate
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: offset
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Transactions list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionPage"
+
+  /transactions/{id}:
+    get:
+      operationId: getTransaction
+      tags: [transactions]
+      summary: Get a transaction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "404":
+          description: Not found
+
+    patch:
+      operationId: updateTransaction
+      tags: [transactions]
+      summary: Update a transaction (category, notes, etc.)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionUpdate"
+      responses:
+        "200":
+          description: Updated transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+
+  /transactions/bulk-categorize:
+    post:
+      operationId: bulkCategorize
+      tags: [transactions]
+      summary: Auto-categorize all uncategorized transactions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkCategorizeInput"
+      responses:
+        "200":
+          description: Categorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkCategorizeResult"
+
+  # Categories
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [categories]
+      summary: List all categories
+      responses:
+        "200":
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+
+    post:
+      operationId: createCategory
+      tags: [categories]
+      summary: Create a category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+
+  /categories/{id}:
+    patch:
+      operationId: updateCategory
+      tags: [categories]
+      summary: Update a category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+
+    delete:
+      operationId: deleteCategory
+      tags: [categories]
+      summary: Delete a category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # Budgets
+  /budgets:
+    get:
+      operationId: listBudgets
+      tags: [budgets]
+      summary: List budgets with actual vs planned spending
+      responses:
+        "200":
+          description: Budgets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Budget"
+
+    post:
+      operationId: createBudget
+      tags: [budgets]
+      summary: Create a budget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BudgetInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Budget"
+
+  /budgets/{id}:
+    patch:
+      operationId: updateBudget
+      tags: [budgets]
+      summary: Update a budget
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BudgetUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Budget"
+
+    delete:
+      operationId: deleteBudget
+      tags: [budgets]
+      summary: Delete a budget
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # Goals
+  /goals:
+    get:
+      operationId: listGoals
+      tags: [goals]
+      summary: List financial goals
+      responses:
+        "200":
+          description: Goals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Goal"
+
+    post:
+      operationId: createGoal
+      tags: [goals]
+      summary: Create a financial goal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoalInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Goal"
+
+  /goals/{id}:
+    patch:
+      operationId: updateGoal
+      tags: [goals]
+      summary: Update a goal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoalUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Goal"
+
+    delete:
+      operationId: deleteGoal
+      tags: [goals]
+      summary: Delete a goal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # Analytics (wow endpoints)
+  /analytics/summary:
+    get:
+      operationId: getAnalyticsSummary
+      tags: [analytics]
+      summary: Get dashboard summary - total income, expenses, savings, health score
+      parameters:
+        - name: month
+          in: query
+          schema:
+            type: ["string", "null"]
+          description: "YYYY-MM format. Defaults to current month"
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsSummary"
+
+  /analytics/spending-by-category:
+    get:
+      operationId: getSpendingByCategory
+      tags: [analytics]
+      summary: Spending breakdown by category
+      parameters:
+        - name: month
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: period
+          in: query
+          schema:
+            type: ["string", "null"]
+            enum: [month, quarter, year, null]
+      responses:
+        "200":
+          description: Category spending breakdown
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CategorySpending"
+
+  /analytics/cashflow:
+    get:
+      operationId: getCashflow
+      tags: [analytics]
+      summary: Monthly income vs expenses trend
+      parameters:
+        - name: months
+          in: query
+          schema:
+            type: ["integer", "null"]
+          description: Number of months (default 6)
+      responses:
+        "200":
+          description: Cashflow trend
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CashflowMonth"
+
+  /analytics/merchant-insights:
+    get:
+      operationId: getMerchantInsights
+      tags: [analytics]
+      summary: Top merchants by spend
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Merchant insights
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MerchantInsight"
+
+  /analytics/health-score:
+    get:
+      operationId: getHealthScore
+      tags: [analytics]
+      summary: Financial health score with breakdown
+      responses:
+        "200":
+          description: Health score
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthScore"
+
+  # Subscriptions
+  /subscriptions/detected:
+    get:
+      operationId: listDetectedSubscriptions
+      tags: [subscriptions]
+      summary: List detected recurring subscriptions
+      responses:
+        "200":
+          description: Detected subscriptions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DetectedSubscription"
+
+  # Forecasts
+  /forecasts:
+    get:
+      operationId: getForecast
+      tags: [forecasts]
+      summary: Get cashflow forecast
+      parameters:
+        - name: horizon
+          in: query
+          schema:
+            type: ["integer", "null"]
+          description: Days ahead to forecast (30, 90, 180, 365)
+      responses:
+        "200":
+          description: Forecast data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ForecastPoint"
+
+  # Reports
+  /reports:
+    get:
+      operationId: listReports
+      tags: [reports]
+      summary: List generated reports
+      responses:
+        "200":
+          description: Reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Report"
+
+    post:
+      operationId: generateReport
+      tags: [reports]
+      summary: Generate a report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportInput"
+      responses:
+        "201":
+          description: Report generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+
+  /reports/{id}:
+    get:
+      operationId: getReport
+      tags: [reports]
+      summary: Get a report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+
+    delete:
+      operationId: deleteReport
+      tags: [reports]
+      summary: Delete a report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # User Profile
+  /users/profile:
+    get:
+      operationId: getUserProfile
+      tags: [users]
+      summary: Get user profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+    patch:
+      operationId: updateUserProfile
+      tags: [users]
+      summary: Update user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserProfileUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  # Admin
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Admin platform statistics
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      summary: List all users (admin)
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: status
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: offset
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserPage"
+
+  /admin/users/{id}:
+    patch:
+      operationId: updateAdminUser
+      tags: [admin]
+      summary: Update user (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUserUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+    delete:
+      operationId: deleteAdminUser
+      tags: [admin]
+      summary: Delete user (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /admin/audit-logs:
+    get:
+      operationId: listAuditLogs
+      tags: [admin]
+      summary: List audit logs
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: offset
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditLog"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    MessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+
+    # Auth
+    RegisterInput:
+      type: object
+      required: [email, password, name]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+          minLength: 6
+        name:
+          type: string
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+
+    User:
+      type: object
+      required: [id, email, name, role, plan]
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [user, admin, super_admin]
+        plan:
+          type: string
+          enum: [free, pro, enterprise]
+        status:
+          type: string
+          enum: [active, suspended]
+        createdAt:
+          type: string
+
+    UserProfileUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        currency:
+          type: ["string", "null"]
+
+    # Statements
+    Statement:
+      type: object
+      required: [id, bankName, fileName, transactionCount, totalDebits, totalCredits, startDate, endDate, createdAt]
+      properties:
+        id:
+          type: integer
+        bankName:
+          type: string
+        fileName:
+          type: string
+        transactionCount:
+          type: integer
+        totalDebits:
+          type: number
+        totalCredits:
+          type: number
+        startDate:
+          type: string
+        endDate:
+          type: string
+        status:
+          type: string
+          enum: [processing, ready, error]
+        createdAt:
+          type: string
+
+    StatementUpload:
+      type: object
+      required: [bankName, transactions]
+      properties:
+        bankName:
+          type: string
+        fileName:
+          type: string
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/TransactionImport"
+
+    TransactionImport:
+      type: object
+      required: [date, description, amount, type]
+      properties:
+        date:
+          type: string
+        description:
+          type: string
+        amount:
+          type: number
+        type:
+          type: string
+          enum: [credit, debit]
+        merchant:
+          type: ["string", "null"]
+        reference:
+          type: ["string", "null"]
+
+    # Transactions
+    Transaction:
+      type: object
+      required: [id, statementId, date, description, amount, type]
+      properties:
+        id:
+          type: integer
+        statementId:
+          type: integer
+        date:
+          type: string
+        description:
+          type: string
+        merchant:
+          type: ["string", "null"]
+        amount:
+          type: number
+        type:
+          type: string
+          enum: [credit, debit]
+        categoryId:
+          type: ["integer", "null"]
+        categoryName:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        isRecurring:
+          type: boolean
+        createdAt:
+          type: string
+
+    TransactionPage:
+      type: object
+      required: [transactions, total]
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        total:
+          type: integer
+
+    TransactionUpdate:
+      type: object
+      properties:
+        categoryId:
+          type: ["integer", "null"]
+        notes:
+          type: ["string", "null"]
+        merchant:
+          type: ["string", "null"]
+        isRecurring:
+          type: ["boolean", "null"]
+
+    BulkCategorizeInput:
+      type: object
+      properties:
+        statementId:
+          type: ["integer", "null"]
+
+    BulkCategorizeResult:
+      type: object
+      required: [updated]
+      properties:
+        updated:
+          type: integer
+
+    # Categories
+    Category:
+      type: object
+      required: [id, name, icon, color, type, isDefault]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        icon:
+          type: string
+        color:
+          type: string
+        type:
+          type: string
+          enum: [income, expense, transfer]
+        isDefault:
+          type: boolean
+        transactionCount:
+          type: ["integer", "null"]
+
+    CategoryInput:
+      type: object
+      required: [name, icon, color, type]
+      properties:
+        name:
+          type: string
+        icon:
+          type: string
+        color:
+          type: string
+        type:
+          type: string
+          enum: [income, expense, transfer]
+
+    CategoryUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        icon:
+          type: string
+        color:
+          type: string
+
+    # Budgets
+    Budget:
+      type: object
+      required: [id, categoryId, categoryName, period, amount, spent, remaining]
+      properties:
+        id:
+          type: integer
+        categoryId:
+          type: integer
+        categoryName:
+          type: string
+        period:
+          type: string
+          enum: [monthly, yearly]
+        amount:
+          type: number
+        spent:
+          type: number
+        remaining:
+          type: number
+        percentUsed:
+          type: number
+        month:
+          type: ["string", "null"]
+        year:
+          type: ["integer", "null"]
+
+    BudgetInput:
+      type: object
+      required: [categoryId, period, amount]
+      properties:
+        categoryId:
+          type: integer
+        period:
+          type: string
+          enum: [monthly, yearly]
+        amount:
+          type: number
+        month:
+          type: ["string", "null"]
+        year:
+          type: ["integer", "null"]
+
+    BudgetUpdate:
+      type: object
+      properties:
+        amount:
+          type: number
+        period:
+          type: ["string", "null"]
+          enum: [monthly, yearly, null]
+
+    # Goals
+    Goal:
+      type: object
+      required: [id, name, type, targetAmount, currentAmount, deadline, progressPercent]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+          enum: [emergency_fund, vehicle, vacation, house, custom]
+        targetAmount:
+          type: number
+        currentAmount:
+          type: number
+        deadline:
+          type: ["string", "null"]
+        progressPercent:
+          type: number
+        estimatedCompletion:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+
+    GoalInput:
+      type: object
+      required: [name, type, targetAmount, currentAmount]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [emergency_fund, vehicle, vacation, house, custom]
+        targetAmount:
+          type: number
+        currentAmount:
+          type: number
+        deadline:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+
+    GoalUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        targetAmount:
+          type: ["number", "null"]
+        currentAmount:
+          type: ["number", "null"]
+        deadline:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+
+    # Analytics
+    AnalyticsSummary:
+      type: object
+      required: [totalIncome, totalExpenses, netSavings, savingsRate, healthScore, transactionCount, month]
+      properties:
+        totalIncome:
+          type: number
+        totalExpenses:
+          type: number
+        netSavings:
+          type: number
+        savingsRate:
+          type: number
+        healthScore:
+          type: number
+        transactionCount:
+          type: integer
+        month:
+          type: string
+        topCategory:
+          type: ["string", "null"]
+        budgetUtilization:
+          type: ["number", "null"]
+
+    CategorySpending:
+      type: object
+      required: [categoryId, categoryName, color, icon, amount, percentage, count]
+      properties:
+        categoryId:
+          type: ["integer", "null"]
+        categoryName:
+          type: string
+        color:
+          type: string
+        icon:
+          type: string
+        amount:
+          type: number
+        percentage:
+          type: number
+        count:
+          type: integer
+
+    CashflowMonth:
+      type: object
+      required: [month, income, expenses, net]
+      properties:
+        month:
+          type: string
+        income:
+          type: number
+        expenses:
+          type: number
+        net:
+          type: number
+
+    MerchantInsight:
+      type: object
+      required: [merchant, totalSpent, transactionCount, averageSpend]
+      properties:
+        merchant:
+          type: string
+        totalSpent:
+          type: number
+        transactionCount:
+          type: integer
+        averageSpend:
+          type: number
+        lastTransaction:
+          type: ["string", "null"]
+
+    HealthScore:
+      type: object
+      required: [score, grade, breakdown, recommendations]
+      properties:
+        score:
+          type: number
+        grade:
+          type: string
+        breakdown:
+          $ref: "#/components/schemas/HealthScoreBreakdown"
+        recommendations:
+          type: array
+          items:
+            type: string
+
+    HealthScoreBreakdown:
+      type: object
+      required: [savingsRatio, spendingPatterns, budgetAdherence, incomeStability]
+      properties:
+        savingsRatio:
+          type: number
+        spendingPatterns:
+          type: number
+        budgetAdherence:
+          type: number
+        incomeStability:
+          type: number
+
+    # Subscriptions
+    DetectedSubscription:
+      type: object
+      required: [id, merchant, amount, frequency, monthlyCost, annualCost, lastDate]
+      properties:
+        id:
+          type: integer
+        merchant:
+          type: string
+        amount:
+          type: number
+        frequency:
+          type: string
+          enum: [weekly, monthly, quarterly, annual]
+        monthlyCost:
+          type: number
+        annualCost:
+          type: number
+        lastDate:
+          type: string
+        nextExpected:
+          type: ["string", "null"]
+        categoryId:
+          type: ["integer", "null"]
+
+    # Forecasts
+    ForecastPoint:
+      type: object
+      required: [date, projectedBalance, projectedIncome, projectedExpenses]
+      properties:
+        date:
+          type: string
+        projectedBalance:
+          type: number
+        projectedIncome:
+          type: number
+        projectedExpenses:
+          type: number
+        confidence:
+          type: number
+
+    # Reports
+    Report:
+      type: object
+      required: [id, type, title, period, status, createdAt]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [monthly, annual, tax, business, executive]
+        title:
+          type: string
+        period:
+          type: string
+        status:
+          type: string
+          enum: [generating, ready, error]
+        summary:
+          type: ["string", "null"]
+        data:
+          type: ["object", "null"]
+        createdAt:
+          type: string
+
+    ReportInput:
+      type: object
+      required: [type, period]
+      properties:
+        type:
+          type: string
+          enum: [monthly, annual, tax, business, executive]
+        period:
+          type: string
+        title:
+          type: ["string", "null"]
+
+    # Admin
+    AdminStats:
+      type: object
+      required: [totalUsers, activeUsers, totalTransactions, totalStatements, totalReports]
+      properties:
+        totalUsers:
+          type: integer
+        activeUsers:
+          type: integer
+        totalTransactions:
+          type: integer
+        totalStatements:
+          type: integer
+        totalReports:
+          type: integer
+        newUsersThisMonth:
+          type: integer
+        proUsers:
+          type: integer
+
+    AdminUserPage:
+      type: object
+      required: [users, total]
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        total:
+          type: integer
+
+    AdminUserUpdate:
+      type: object
+      properties:
+        role:
+          type: ["string", "null"]
+          enum: [user, admin, super_admin, null]
+        plan:
+          type: ["string", "null"]
+          enum: [free, pro, enterprise, null]
+        status:
+          type: ["string", "null"]
+          enum: [active, suspended, null]
+
+    AuditLog:
+      type: object
+      required: [id, userId, action, entity, createdAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: ["integer", "null"]
+        userEmail:
+          type: ["string", "null"]
+        action:
+          type: string
+        entity:
+          type: string
+        entityId:
+          type: ["integer", "null"]
+        details:
+          type: ["string", "null"]
+        createdAt:
+          type: string

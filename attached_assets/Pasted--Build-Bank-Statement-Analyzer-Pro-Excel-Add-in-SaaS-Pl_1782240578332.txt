@@ -1,0 +1,830 @@
+# Build Bank Statement Analyzer Pro (Excel Add-in + SaaS Platform)
+
+You are a senior full-stack architect and developer.
+
+Build a production-quality application called **Bank Statement Analyzer Pro**.
+
+## Objective
+
+Create a Microsoft Excel Add-in that allows users to import bank statements, analyze spending, generate financial insights, create budgets, forecast cashflow, and export reports.
+
+The solution must include:
+
+1. Excel Add-in (React + Office.js)
+2. Web Admin Portal (React)
+3. Flask REST API Backend
+4. SQLite Database
+5. Authentication & Authorization
+6. Subscription Billing
+7. USDT Payments
+8. AI Features
+9. Reporting Engine
+10. OCR Processing
+11. Multi-bank Statement Processing
+
+The application must be fully functional, modular, scalable, and ready for deployment.
+
+---
+
+# Technology Stack
+
+## Frontend
+
+* React 18
+* TypeScript
+* Vite
+* Office.js
+* Fluent UI
+* Redux Toolkit
+* React Query
+* React Router
+* Recharts
+* Axios
+* React Hook Form
+* Zod
+
+## Backend
+
+* Flask
+* SQLAlchemy
+* Flask-JWT-Extended
+* Flask-Migrate
+* Flask-CORS
+* Alembic
+* SQLite
+* APScheduler
+
+## File Processing
+
+* pdfplumber
+* PyMuPDF
+* pandas
+* openpyxl
+
+## OCR
+
+* Tesseract OCR
+* pytesseract
+
+## Reporting
+
+* ReportLab
+* pandas
+* openpyxl
+
+## Authentication
+
+* JWT
+* Refresh Tokens
+
+## Payments
+
+Support:
+
+* USDT TRC20
+* USDT BEP20
+* USDT ERC20
+
+Prepare integration adapters for:
+
+* NOWPayments
+* CoinPayments
+
+---
+
+# Project Structure
+
+Create:
+
+/frontend-excel
+/frontend-admin
+/backend
+
+Each must be independently runnable.
+
+---
+
+# Excel Add-in
+
+## Ribbon Commands
+
+Create ribbon buttons:
+
+* Import Statement
+* Dashboard
+* Categorize
+* Budget Report
+* Forecast
+* AI Assistant
+* Export PDF
+* Export Excel
+* Settings
+
+---
+
+# Excel Task Pane
+
+Modern Fluent UI interface.
+
+Sections:
+
+## Dashboard
+
+Show:
+
+* Total Income
+* Total Expenses
+* Savings
+* Savings Rate
+* Financial Health Score
+* Budget Usage
+
+Charts:
+
+* Spending Trend
+* Income vs Expenses
+* Category Breakdown
+* Subscription Trend
+* Forecast Trend
+
+---
+
+## Import Statements
+
+Support:
+
+* CSV
+* XLSX
+* PDF
+* Scanned PDF OCR
+
+Features:
+
+* Drag and drop upload
+* Batch upload
+* Duplicate detection
+* Validation
+
+---
+
+## Transactions
+
+Display transactions table.
+
+Columns:
+
+* Date
+* Description
+* Merchant
+* Category
+* Amount
+* Type
+* Notes
+
+Features:
+
+* Search
+* Sort
+* Filter
+* Edit
+* Bulk edit
+
+---
+
+## AI Categorization
+
+Automatically categorize transactions.
+
+Built-in categories:
+
+* Food
+* Groceries
+* Transport
+* Fuel
+* Utilities
+* Shopping
+* Entertainment
+* Healthcare
+* Salary
+* Savings
+* Investments
+* Taxes
+* Loans
+* Transfers
+* Other
+
+Allow custom categories.
+
+Allow learning from corrections.
+
+---
+
+## Financial Health Score
+
+Generate score 0-100 using:
+
+* Savings ratio
+* Spending patterns
+* Debt burden
+* Income stability
+* Budget adherence
+
+Show recommendations.
+
+---
+
+## Budgeting Module
+
+Users can:
+
+* Create budgets
+* Edit budgets
+* Delete budgets
+
+Support:
+
+* Monthly budgets
+* Yearly budgets
+
+Show:
+
+* Actual vs Budget
+* Variance
+* Alerts
+
+---
+
+## Goal Tracking
+
+Create goals:
+
+* Emergency Fund
+* Vehicle
+* Vacation
+* House
+* Custom Goal
+
+Show:
+
+* Progress
+* Estimated completion date
+
+---
+
+## Subscription Detection
+
+Detect recurring transactions.
+
+Examples:
+
+* Netflix
+* Spotify
+* Microsoft 365
+* Adobe
+* DSTV
+* GOtv
+
+Show:
+
+* Monthly cost
+* Annual cost
+
+---
+
+## Merchant Intelligence
+
+For each merchant show:
+
+* Total spent
+* Transaction count
+* Average spend
+* Monthly trend
+
+---
+
+## Cashflow Forecasting
+
+Generate:
+
+* 30 day forecast
+* 90 day forecast
+* 6 month forecast
+* 12 month forecast
+
+Use historical transaction analysis.
+
+---
+
+## What-if Simulator
+
+Scenarios:
+
+* Reduce category spending
+* Increase savings
+* Income changes
+
+Display projected outcomes.
+
+---
+
+## AI Assistant
+
+Chat interface.
+
+Example queries:
+
+* Show expenses above ₦50,000
+* Compare April and May spending
+* What subscriptions am I paying for?
+* Create a transportation spending chart
+
+Assistant can:
+
+* Query transactions
+* Generate reports
+* Create charts
+* Insert worksheets
+
+Create AI service abstraction layer.
+
+Use mock provider initially.
+
+---
+
+## Reports
+
+Generate:
+
+* Monthly report
+* Annual report
+* Tax report
+* Business report
+* Executive summary
+
+Export:
+
+* PDF
+* Excel
+* CSV
+* JSON
+
+---
+
+## White-label Reports
+
+Allow:
+
+* Logo upload
+* Custom colors
+* Company details
+
+---
+
+# OCR Module
+
+Support:
+
+* Scanned PDFs
+* Images
+
+Process:
+
+* OCR extraction
+* Table reconstruction
+* Transaction parsing
+
+Provide confidence score.
+
+---
+
+# Statement Processing Engine
+
+Create modular parsers.
+
+Supported:
+
+* Generic CSV
+* Generic Excel
+* Generic PDF
+
+Create bank template system.
+
+Templates:
+
+* GTBank
+* Access Bank
+* Zenith Bank
+* UBA
+* First Bank
+* Moniepoint
+* OPay
+* PalmPay
+
+Allow admin to add new templates.
+
+---
+
+# Backend API
+
+Create REST APIs.
+
+Modules:
+
+## Auth
+
+* Register
+* Login
+* Logout
+* Refresh Token
+* Forgot Password
+* Reset Password
+
+---
+
+## User
+
+* Profile
+* Preferences
+* Usage Stats
+
+---
+
+## Statements
+
+* Upload
+* Parse
+* Validate
+* Delete
+
+---
+
+## Transactions
+
+* CRUD
+* Search
+* Filter
+* Categorize
+
+---
+
+## Categories
+
+* CRUD
+* Merchant Mappings
+
+---
+
+## Budgets
+
+* CRUD
+
+---
+
+## Goals
+
+* CRUD
+
+---
+
+## Reports
+
+* Generate
+* Download
+
+---
+
+## Forecasts
+
+* Generate
+* Retrieve
+
+---
+
+## AI
+
+* Categorize
+* Analyze
+* Chat
+
+---
+
+## Payments
+
+* Create invoice
+* Verify payment
+* Activate subscription
+
+---
+
+## Admin
+
+* Dashboard
+* Users
+* Billing
+* Settings
+* Audit Logs
+
+---
+
+# Database Design
+
+Create SQLAlchemy models.
+
+Tables:
+
+users
+roles
+permissions
+subscriptions
+payments
+payment_logs
+
+statements
+transactions
+transaction_tags
+
+categories
+merchant_mappings
+
+budgets
+
+goals
+goal_progress
+
+reports
+report_templates
+
+subscriptions_detected
+
+financial_scores
+
+cashflow_forecasts
+
+attachments
+
+notifications
+
+feature_flags
+
+bank_templates
+
+audit_logs
+
+system_settings
+
+ai_requests
+
+ai_usage
+
+---
+
+# Admin Portal
+
+Build separate React application.
+
+---
+
+## Dashboard
+
+Show:
+
+* Total Users
+* Active Users
+* Revenue
+* Subscriptions
+* Imports
+* OCR Usage
+* AI Usage
+
+---
+
+## User Management
+
+Features:
+
+* Search users
+* Edit users
+* Suspend users
+* Delete users
+* Reset password
+
+---
+
+## Subscription Management
+
+Manage:
+
+* Free
+* Pro
+* Enterprise
+
+Configure:
+
+* Price
+* Features
+* Limits
+
+---
+
+## Billing Management
+
+USDT management.
+
+Configure:
+
+* Wallet addresses
+* Supported chains
+* Confirmation thresholds
+
+Show:
+
+* Pending payments
+* Confirmed payments
+* Failed payments
+
+---
+
+## Category Manager
+
+Manage default categories.
+
+Manage merchant mappings.
+
+---
+
+## Rules Engine
+
+Create rules:
+
+IF description contains keyword
+THEN category = X
+
+IF amount > threshold
+THEN flag transaction
+
+---
+
+## OCR Settings
+
+Configure:
+
+* OCR provider
+* Confidence thresholds
+
+---
+
+## AI Settings
+
+Configure:
+
+* Provider
+* Model
+* API keys
+* Cost limits
+
+---
+
+## Feature Flags
+
+Enable or disable:
+
+* AI Assistant
+* Forecasting
+* OCR
+* Tax Reports
+* White-label Reports
+
+Without redeploying.
+
+---
+
+## Report Templates
+
+Manage templates.
+
+Create editor interface.
+
+---
+
+## Bank Template Manager
+
+Manage parsing templates.
+
+Create parser configuration UI.
+
+---
+
+## Notifications
+
+Manage:
+
+* Email templates
+* Budget alerts
+* Subscription alerts
+
+---
+
+## Audit Logs
+
+Track:
+
+* User actions
+* Admin actions
+* Billing actions
+* Configuration changes
+
+---
+
+# Security
+
+Implement:
+
+* JWT authentication
+* Role-based access control
+* Admin roles
+* Permission system
+* Password hashing
+* Rate limiting
+* Input validation
+* File upload validation
+
+---
+
+# Roles
+
+Create:
+
+1. Super Admin
+2. Admin
+3. Accountant
+4. User
+
+Implement permissions matrix.
+
+---
+
+# UI Requirements
+
+Use Fluent UI.
+
+Provide:
+
+* Responsive design
+* Dark mode
+* Light mode
+* Loading states
+* Error handling
+* Empty states
+
+---
+
+# Seed Data
+
+Create:
+
+* Categories
+* Merchant mappings
+* Bank templates
+* Demo user
+* Demo transactions
+
+---
+
+# Deliverables
+
+Generate:
+
+1. Complete backend code
+2. Complete Excel add-in code
+3. Complete admin portal code
+4. Database models
+5. API routes
+6. Authentication system
+7. Seed scripts
+8. Docker configuration
+9. Environment configuration
+10. README
+11. Installation guide
+12. Development guide
+
+Build the application incrementally in phases:
+
+Phase 1:
+Authentication, database, statement imports.
+
+Phase 2:
+Transactions, categorization, dashboard.
+
+Phase 3:
+Budgets, goals, reports.
+
+Phase 4:
+OCR, forecasting, AI assistant.
+
+Phase 5:
+Admin portal, billing, subscriptions.
+
+Phase 6:
+Polish, testing, deployment.
+
+Generate clean, maintainable, production-ready code with proper folder structure, TypeScript types, reusable components, service layers, API abstraction, and comprehensive documentation.
