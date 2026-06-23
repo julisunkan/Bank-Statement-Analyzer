@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   detectColumns,
   readTransactions,
@@ -9,6 +9,8 @@ import {
 } from "./lib/excel";
 import { buildSummary, type Summary, type Transaction } from "./lib/categorizer";
 import { parsePastedText, writeToExcelSheet } from "./lib/csv-parser";
+import { getLicense, checkLicenseValid } from "./lib/payment";
+import PaymentGate from "./components/PaymentGate";
 
 declare const Excel: typeof import("@microsoft/office-js").Excel;
 declare const Office: typeof import("@microsoft/office-js");
@@ -35,7 +37,34 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<"overview" | "categories" | "transactions">("overview");
   const [csvText, setCsvText] = useState("");
   const [csvError, setCsvError] = useState("");
+  const [isPro, setIsPro] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"highlight" | "export" | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Check license on mount
+  useEffect(() => {
+    const key = getLicense();
+    if (key) {
+      checkLicenseValid(key).then((valid) => setIsPro(valid));
+    }
+  }, []);
+
+  const requirePro = useCallback((action: "highlight" | "export") => {
+    if (isPro) return true;
+    setPendingAction(action);
+    setShowPayment(true);
+    return false;
+  }, [isPro]);
+
+  const onPaymentUnlocked = useCallback(() => {
+    setIsPro(true);
+    setShowPayment(false);
+    // Auto-trigger the action the user was trying to do
+    if (pendingAction === "highlight") doHighlight();
+    if (pendingAction === "export") doExport();
+    setPendingAction(null);
+  }, [pendingAction]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const analyzeSheet = useCallback(async () => {
     setStep("loading");
@@ -73,12 +102,7 @@ export default function App() {
     }
     setStep("importing");
     try {
-      // Write to Excel sheet, then analyze it
-      await runExcel(async (ctx) => {
-        await writeToExcelSheet(parsed, ctx);
-      });
-
-      // Now analyze the newly created sheet
+      await runExcel(async (ctx) => { await writeToExcelSheet(parsed, ctx); });
       setStep("loading");
       const txns: Transaction[] = await runExcel(async (ctx) => {
         const sheet = ctx.workbook.worksheets.getActiveWorksheet();
@@ -96,7 +120,7 @@ export default function App() {
     }
   }, [csvText]);
 
-  const highlight = useCallback(async () => {
+  const doHighlight = useCallback(async () => {
     if (!summary) return;
     setHighlighting(true);
     try {
@@ -112,7 +136,7 @@ export default function App() {
     }
   }, [summary]);
 
-  const exportSheet = useCallback(async () => {
+  const doExport = useCallback(async () => {
     if (!summary) return;
     setExporting(true);
     try {
@@ -125,14 +149,18 @@ export default function App() {
     }
   }, [summary]);
 
+  const handleHighlight = useCallback(() => {
+    if (requirePro("highlight")) doHighlight();
+  }, [requirePro, doHighlight]);
+
+  const handleExport = useCallback(() => {
+    if (requirePro("export")) doExport();
+  }, [requirePro, doExport]);
+
   const reset = () => {
-    setStep("idle");
-    setSummary(null);
-    setError("");
-    setExportDone(false);
-    setActiveTab("overview");
-    setCsvText("");
-    setCsvError("");
+    setStep("idle"); setSummary(null); setError("");
+    setExportDone(false); setActiveTab("overview");
+    setCsvText(""); setCsvError("");
   };
 
   const topCategories = summary
@@ -142,26 +170,37 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
+      {/* Payment overlay */}
+      {showPayment && (
+        <PaymentGate
+          onUnlocked={onPaymentUnlocked}
+          onDismiss={() => { setShowPayment(false); setPendingAction(null); }}
+        />
+      )}
+
       {/* Header */}
       <header className="flex items-center gap-2 px-3 py-2 border-b border-border bg-white shadow-sm shrink-0">
         <div className="flex items-center justify-center w-7 h-7 rounded bg-primary">
           <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <rect x="2" y="3" width="20" height="18" rx="2" />
-            <path d="M8 7h8M8 11h8M8 15h5" />
+            <rect x="2" y="3" width="20" height="18" rx="2" /><path d="M8 7h8M8 11h8M8 15h5" />
           </svg>
         </div>
         <div>
           <div className="font-semibold text-sm leading-none text-foreground">Bank Statement Analyzer</div>
           <div className="text-[10px] text-muted-foreground mt-0.5">Excel Add-in</div>
         </div>
-        {(step === "results" || step === "error" || step === "paste") && (
-          <button
-            onClick={reset}
-            className="ml-auto text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-muted transition-colors"
-          >
-            ← Back
-          </button>
-        )}
+        <div className="ml-auto flex items-center gap-2">
+          {isPro && (
+            <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full border border-amber-200">
+              ⭐ PRO
+            </span>
+          )}
+          {(step === "results" || step === "error" || step === "paste") && (
+            <button onClick={reset} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-muted transition-colors">
+              ← Back
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Body */}
@@ -182,7 +221,6 @@ export default function App() {
               </p>
             </div>
 
-            {/* Two action cards */}
             <div className="w-full max-w-[260px] space-y-3">
               <button
                 onClick={analyzeSheet}
@@ -209,8 +247,7 @@ export default function App() {
                   <div className="w-8 h-8 rounded-md bg-accent/10 flex items-center justify-center shrink-0 group-hover:bg-accent/20 transition-colors">
                     <svg className="w-4 h-4 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-                      <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-                      <path d="M9 12h6M9 16h4" />
+                      <rect x="8" y="2" width="8" height="4" rx="1" ry="1" /><path d="M9 12h6M9 16h4" />
                     </svg>
                   </div>
                   <div>
@@ -221,15 +258,36 @@ export default function App() {
               </button>
             </div>
 
-            <div className="w-full max-w-[240px]">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Expected columns</p>
-              {["Date", "Description / Narration", "Amount", "Type — Dr/Cr (optional)"].map((col) => (
-                <div key={col} className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                  {col}
+            {/* Free vs Pro */}
+            {!isPro && (
+              <div className="w-full max-w-[260px] border border-amber-200 rounded-lg overflow-hidden">
+                <div className="bg-amber-50 px-3 py-2 flex items-center justify-between">
+                  <p className="text-[11px] font-semibold text-amber-800">Free vs Pro</p>
+                  <button
+                    onClick={() => setShowPayment(true)}
+                    className="text-[10px] font-semibold text-amber-700 bg-amber-200 hover:bg-amber-300 px-2 py-0.5 rounded transition-colors"
+                  >
+                    Unlock $5 USDT
+                  </button>
                 </div>
-              ))}
-            </div>
+                <div className="p-2 space-y-1">
+                  {[
+                    { label: "Analyze transactions", free: true },
+                    { label: "Categorize spending", free: true },
+                    { label: "View summary & charts", free: true },
+                    { label: "Highlight cells by category", free: false },
+                    { label: "Export summary sheet", free: false },
+                  ].map((f) => (
+                    <div key={f.label} className="flex items-center gap-2 text-[10px]">
+                      <span className={f.free ? "text-green-600" : "text-muted-foreground/50"}>
+                        {f.free ? "✓" : "🔒"}
+                      </span>
+                      <span className={f.free ? "text-foreground" : "text-muted-foreground/60"}>{f.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -239,10 +297,9 @@ export default function App() {
             <div>
               <h3 className="text-sm font-semibold mb-0.5">Paste Bank Statement</h3>
               <p className="text-[11px] text-muted-foreground">
-                Copy your statement from your bank's portal or export (CSV, TSV, or plain text) and paste it below.
+                Copy your statement from your bank's portal or export (CSV, TSV, or plain text) and paste below.
               </p>
             </div>
-
             <textarea
               ref={textareaRef}
               value={csvText}
@@ -251,12 +308,7 @@ export default function App() {
               className="flex-1 w-full rounded-md border border-border bg-white p-2 text-xs font-mono resize-none focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
               spellCheck={false}
             />
-
-            {csvError && (
-              <p className="text-xs text-destructive bg-destructive/10 rounded-md px-2 py-1.5">{csvError}</p>
-            )}
-
-            {/* Preview count */}
+            {csvError && <p className="text-xs text-destructive bg-destructive/10 rounded-md px-2 py-1.5">{csvError}</p>}
             {csvText.trim().length > 0 && (() => {
               const parsed = parsePastedText(csvText);
               return parsed ? (
@@ -266,22 +318,12 @@ export default function App() {
                   {parsed.headers.join(", ")}
                 </p>
               ) : (
-                <p className="text-[10px] text-muted-foreground/70">Paste more data — need at least a header row and one data row.</p>
+                <p className="text-[10px] text-muted-foreground/70">Need at least a header row and one data row.</p>
               );
             })()}
-
             <div className="flex gap-2 shrink-0">
-              <button
-                onClick={() => { setCsvText(""); setCsvError(""); textareaRef.current?.focus(); }}
-                className="flex-1 text-xs bg-muted text-muted-foreground font-medium py-2 rounded-md hover:bg-muted/80 transition-colors"
-              >
-                Clear
-              </button>
-              <button
-                onClick={importAndAnalyzeCsv}
-                disabled={!csvText.trim()}
-                className="flex-1 text-xs bg-primary text-primary-foreground font-medium py-2 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
-              >
+              <button onClick={() => { setCsvText(""); setCsvError(""); }} className="flex-1 text-xs bg-muted text-muted-foreground font-medium py-2 rounded-md hover:bg-muted/80 transition-colors">Clear</button>
+              <button onClick={importAndAnalyzeCsv} disabled={!csvText.trim()} className="flex-1 text-xs bg-primary text-primary-foreground font-medium py-2 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50">
                 Import &amp; Analyze
               </button>
             </div>
@@ -308,9 +350,7 @@ export default function App() {
             </div>
             <h3 className="text-sm font-semibold text-destructive mb-2">Analysis Failed</h3>
             <p className="text-xs text-muted-foreground mb-4 whitespace-pre-wrap">{error}</p>
-            <button onClick={reset} className="text-xs bg-muted px-4 py-2 rounded-md hover:bg-muted/80 transition-colors">
-              Try Again
-            </button>
+            <button onClick={reset} className="text-xs bg-muted px-4 py-2 rounded-md hover:bg-muted/80 transition-colors">Try Again</button>
           </div>
         )}
 
@@ -319,19 +359,24 @@ export default function App() {
           <div className="flex flex-col h-full">
             {/* Action buttons */}
             <div className="flex gap-2 px-3 pt-3 pb-2 shrink-0">
+              {/* Highlight — locked for free users */}
               <button
-                onClick={highlight}
+                onClick={handleHighlight}
                 disabled={highlighting}
-                className="flex-1 flex items-center justify-center gap-1.5 text-xs bg-secondary text-secondary-foreground font-medium py-2 rounded-md hover:bg-secondary/80 transition-colors disabled:opacity-60"
+                className="flex-1 flex items-center justify-center gap-1.5 text-xs bg-secondary text-secondary-foreground font-medium py-2 rounded-md hover:bg-secondary/80 transition-colors disabled:opacity-60 relative"
               >
                 {highlighting
                   ? <span className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
-                  : <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
+                  : isPro
+                  ? <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
+                  : <span className="text-[10px]">🔒</span>
                 }
                 Highlight Cells
               </button>
+
+              {/* Export — locked for free users */}
               <button
-                onClick={exportSheet}
+                onClick={handleExport}
                 disabled={exporting}
                 className="flex-1 flex items-center justify-center gap-1.5 text-xs bg-primary text-primary-foreground font-medium py-2 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-60"
               >
@@ -339,21 +384,32 @@ export default function App() {
                   ? <span className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
                   : exportDone
                   ? <><svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>Done</>
-                  : <><svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>Export Sheet</>
+                  : isPro
+                  ? <><svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>Export Sheet</>
+                  : <><span className="text-[10px]">🔒</span>Export Sheet</>
                 }
               </button>
             </div>
 
+            {/* Free upsell banner */}
+            {!isPro && (
+              <button
+                onClick={() => setShowPayment(true)}
+                className="mx-3 mb-2 flex items-center justify-between bg-amber-50 border border-amber-200 rounded-md px-3 py-2 hover:bg-amber-100 transition-colors"
+              >
+                <div className="text-left">
+                  <p className="text-[11px] font-semibold text-amber-800">Unlock Premium — $5 USDT</p>
+                  <p className="text-[10px] text-amber-600">Highlight cells · Export report sheet</p>
+                </div>
+                <svg className="w-4 h-4 text-amber-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
+              </button>
+            )}
+
             {/* Tabs */}
             <div className="flex border-b border-border shrink-0">
               {(["overview", "categories", "transactions"] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${
-                    activeTab === tab ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
+                <button key={tab} onClick={() => setActiveTab(tab)}
+                  className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${activeTab === tab ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}>
                   {tab}
                 </button>
               ))}
@@ -381,7 +437,7 @@ export default function App() {
                           <span className="text-xs font-semibold">{fmt(info.total)}</span>
                         </div>
                         <div className="h-1.5 bg-muted rounded-full">
-                          <div className="h-1.5 rounded-full transition-all" style={{ width: `${(info.total / maxCatTotal) * 100}%`, backgroundColor: info.color }} />
+                          <div className="h-1.5 rounded-full" style={{ width: `${(info.total / maxCatTotal) * 100}%`, backgroundColor: info.color }} />
                         </div>
                       </div>
                     ))}
